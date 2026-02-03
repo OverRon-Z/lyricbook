@@ -73,6 +73,32 @@ def view(artist: str, song: str):
 
     typer.echo("Song not found.")
 
+import lyricsgenius
+import os
+
+# Genius client
+GENIUS_TOKEN = os.environ.get("GENIUS_TOKEN")
+genius = lyricsgenius.Genius(GENIUS_TOKEN, skip_non_songs=True, excluded_terms=["(Remix)", "(Live)"], remove_section_headers=True)
+
+@app.command()
+def fetch(artist: str, song: str):
+    """Fetch lyrics from Genius and add to your lyricbook."""
+    if not GENIUS_TOKEN:
+        typer.echo("Error: GENIUS_TOKEN environment variable not set.")
+        raise typer.Exit()
+
+    try:
+        song_obj = genius.search_song(song, artist)
+        if not song_obj or not song_obj.lyrics:
+            typer.echo("Lyrics not found.")
+            return
+        lyrics = song_obj.lyrics
+        data = load_data()
+        data.append({"artist": artist, "song": song, "lyrics": lyrics})
+        save_data(data)
+        typer.echo(f"Fetched and added: {artist} - {song}")
+    except Exception as e:
+        typer.echo(f"Error fetching lyrics: {e}")
 
 if __name__ == "__main__":
     app()
